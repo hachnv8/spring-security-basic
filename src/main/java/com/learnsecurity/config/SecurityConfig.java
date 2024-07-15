@@ -1,5 +1,8 @@
 package com.learnsecurity.config;
 
+import com.learnsecurity.entity.User;
+import com.learnsecurity.repository.UserInfoRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -7,18 +10,21 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.Optional;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+    private final UserInfoRepository userInfoRepository;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
@@ -32,17 +38,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    // authentication
-    public UserDetailsService userDetailsService(PasswordEncoder encoder) {
-        UserDetails admin = User.withUsername("admin")
-                .password(encoder.encode("password"))
-                .roles("ADMIN")
-                .build();
-        UserDetails user = User.withUsername("user")
-                .password(encoder.encode("pwd1"))
-                .roles("USER")
-                .build();
-        return new InMemoryUserDetailsManager(admin, user);
+    public UserDetailsService userDetailsService() {
+        return username -> {
+            Optional<User> user = userInfoRepository.findByName(username);
+            if (user.isPresent()) {
+                return user.get();
+            }
+            throw new UsernameNotFoundException(username);
+        };
     }
 
     @Bean

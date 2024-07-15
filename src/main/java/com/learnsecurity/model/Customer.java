@@ -1,4 +1,4 @@
-package com.learnsecurity.entity;
+package com.learnsecurity.model;
 
 import lombok.*;
 
